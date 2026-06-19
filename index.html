@@ -1,6 +1,7 @@
 import random
 
 # 百人一首 全100首のデータ (歌番号, 上の句, 下の句, 作者)
+# ※ 1首ごとに改行を入れることで、スマホやブラウザでも綺麗に表示・実行できます
 HYAKUNIN_ISSHU = [
     (1, "秋の田の かりほの庵の 苫をあらみ", "わが衣手は 露にぬれつつ", "天智天皇"),
     (2, "春過ぎて 夏来にけらし 白妙の", "衣ほすてふ 天の香具山", "持統天皇"),
@@ -32,7 +33,7 @@ HYAKUNIN_ISSHU = [
     (28, "山里は 冬ぞ寂しさ まさりける", "人目も草も かれぬと思へば", "源宗于朝臣"),
     (29, "心あてに 折らばや折らむ 初霜の", "置きまどはせる 白菊の花", "凡河内躬恒"),
     (30, "有明けの つれなく見えし 別れより", "あかつきばかり 憂きものはなし", "壬生忠岑"),
-    (31, "朝ぼらけ 有明けの月と みるまでに", "吉野の里に 降れる白雪", "坂上 hills 坂上是則"),
+    (31, "朝ぼらけ 有明けの月と みるまでに", "吉野の里に 降れる白雪", "坂上是則"),
     (32, "山川に 風のかけたる しがらみは", "流れもあへぬ 紅葉なりけり", "春道列樹"),
     (33, "ひさかたの 光のどけき 春の日に", "しづ心なく 花の散るらむ", "紀友則"),
     (34, "誰をかも 知る人にせむ 高砂の", "松も昔の 友ならなくに", "藤原興風"),
@@ -64,7 +65,7 @@ HYAKUNIN_ISSHU = [
     (60, "大江山 いく野の道の 遠ければ", "まだふみもみず 天の橋立", "小式部内侍"),
     (61, "いにしへの 奈良の都の 八重桜", "けふ九重に にほひぬるかな", "伊勢大輔"),
     (62, "夜をこめて 鳥のそらねは はかるとも", "よに逢坂の 関はゆるさじ", "清少納言"),
-    (63, "開はただ 思い絶えなむ とばかりを", "人づてならで 言ふよしもがな", "左京大夫道雅"),
+    (63, "今はただ 思い絶えなむ とばかりを", "人づてならで 言ふよしもがな", "左京大夫道雅"),
     (64, "朝ぼらけ 宇治の川霧 たえだえに", "あらはれわたる 瀬々の網代木", "権中納言定頼"),
     (65, "恨みわび ほさぬ袖だに あるものを", "恋に朽ちなむ 名こそ惜しけれ", "相模"),
     (66, "もろともに あわれと思へ 山桜", "花よりほかに 知る人もなし", "大僧正行尊"),
@@ -110,24 +111,19 @@ def ask_question(question, count, total_in_set):
     print(f"\n【第 {count} 問】(第{q_num}首 / 作者: {author})")
     print(f"上の句：『 {kami} 』\n")
     
-    # 誤答の選択肢をランダムに4つ集める（自答以外）
     wrong_pool = [item[2] for item in HYAKUNIN_ISSHU if item[0] != q_num]
     wrong_answers = random.sample(wrong_pool, 4)
     
-    # 正解と誤答を混ぜて5択にする
     choices = wrong_answers + [shimo]
     random.shuffle(choices)
     
-    # 正解のインデックス（1始まり）を記録
     correct_index = choices.index(shimo) + 1
     
-    # 選択肢を表示
     for i, choice in enumerate(choices, 1):
         print(f"  {i}. {choice}")
         
     print("-" * 40)
     
-    # ユーザー入力を受け付ける
     while True:
         user_input = input("あなたの回答（1〜5、または qで終了）: ").strip()
         
@@ -140,7 +136,6 @@ def ask_question(question, count, total_in_set):
         else:
             print("1〜5の数字、または 'q' を入力してください。")
     
-    # 正誤判定
     if user_choice == correct_index:
         print("\n◎ 正解！")
         return 'correct', 1
@@ -172,7 +167,7 @@ def play_order_mode():
     """順番に出題モード (1番から100番まで、10問ずつ区切り)"""
     print("\n--- 【順番モード】を開始します（第1首〜第100首） ---")
     
-    current_index = 0  # データのインデックス（0 = 第1首）
+    current_index = 0
     total_score = 0
     total_asked = 0
     
@@ -181,7 +176,6 @@ def play_order_mode():
         block_score = 0
         block_asked = 0
         
-        # 10問のブロックを実行
         for i in range(10):
             if current_index >= len(HYAKUNIN_ISSHU):
                 break
@@ -202,13 +196,11 @@ def play_order_mode():
             
         print(f"\nこのブロックの成績: 10問中 {block_score}問 正解")
         
-        # すべて（100首）終わったか確認
         if current_index >= len(HYAKUNIN_ISSHU):
             print("\n🎉 おめでとうございます！全100首を走破しました！")
             print(f"最終トータル成績: 100問中 {total_score}問 正解")
             break
             
-        # 次のブロックに進むか確認
         next_action = input("\n次の10問に進みますか？ (y: 進む / q: 終了): ").strip().lower()
         if next_action == 'q':
             print(f"\nクイズを終了します。トータル成績: {total_asked}問中 {total_score}問 正解")
