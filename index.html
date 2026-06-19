@@ -1,236 +1,357 @@
-import random
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百人一首 4択クイズ</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #f5f5f0;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .quiz-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-top: 8px solid #2c5d3b; /* 畳や和をイメージした緑 */
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #2c5d3b;
+            margin-bottom: 20px;
+        }
+        .status {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .kami-no-ku {
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1.6;
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f9f9f5;
+            border-radius: 5px;
+            border-left: 5px solid #2c5d3b;
+        }
+        .options-grid {
+            display: grid;
+            gap: 12px;
+        }
+        .option-btn {
+            background-color: #fff;
+            border: 2px solid #e0e0d8;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-btn:hover:not(:disabled) {
+            background-color: #f0f5f1;
+            border-color: #2c5d3b;
+        }
+        .option-btn:disabled {
+            cursor: default;
+        }
+        .correct {
+            background-color: #d4edda !important;
+            border-color: #28a745 !important;
+            color: #155724;
+        }
+        .wrong {
+            background-color: #f8d7da !important;
+            border-color: #dc3545 !important;
+            color: #721c24;
+        }
+        .result-panel {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .next-btn {
+            display: block;
+            width: 100%;
+            background-color: #2c5d3b;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+            display: none;
+        }
+        .next-btn:hover {
+            background-color: #1e4228;
+        }
+        .score-screen {
+            text-align: center;
+            padding: 40px 0;
+        }
+        .score-title {
+            font-size: 28px;
+            color: #2c5d3b;
+            margin-bottom: 20px;
+        }
+        .score-num {
+            font-size: 48px;
+            font-weight: bold;
+            color: #e67e22;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
 
-# 百人一首 全100首のデータ (歌番号, 上の句, 下の句, 作者)
-# ※ 1首ごとに改行を入れることで、スマホやブラウザでも綺麗に表示・実行できます
-HYAKUNIN_ISSHU = [
-    (1, "秋の田の かりほの庵の 苫をあらみ", "わが衣手は 露にぬれつつ", "天智天皇"),
-    (2, "春過ぎて 夏来にけらし 白妙の", "衣ほすてふ 天の香具山", "持統天皇"),
-    (3, "あしひきの 山鳥の尾の しだり尾の", "ながながし夜を ひとりかも寝む", "柿本人計"),
-    (4, "田子の浦に うち出でて見れば 白妙の", "富士の高嶺に 雪は降りつつ", "山部赤人"),
-    (5, "奥山に 紅葉ふみわけ 鳴く鹿の", "声きく時ぞ 秋は悲しき", "猿丸大夫"),
-    (6, "かささぎの 渡せる橋に おく霜の", "白きを見れば 夜ぞ更けにける", "中納言家持"),
-    (7, "天の原 ふりさけ見れば 春日なる", "三笠の山に 出でし月かも", "安倍仲麿"),
-    (8, "わが庵は 都のたつみ しかぞ住む", "世をうぢ山と 人は言うなり", "喜撰法師"),
-    (9, "花の色は 移りにけりな いたづらに", "わが身世にふる ながめせしまに", "小野小町"),
-    (10, "これやこの 行くも帰るも わかれては", "知るも知らぬも 逢坂の関", "蝉丸"),
-    (11, "わたの原 八十島かけて 漕ぎ出ぬと", "人には告げよ 海人の釣舟", "参議篁"),
-    (12, "天つ風 雲の通ひ路 吹き閉ぢよ", "をとめの姿 しばしとどめむ", "僧正遍昭"),
-    (13, "筑波嶺の みねより落つる みなの川", "恋ぞつもりて 淵となりぬる", "陽成院"),
-    (14, "陸奥の しのぶもぢずり 誰ゆゑに", "乱れそめにし われならなくに", "河原左大臣"),
-    (15, "君がため 春の野に出でて 若菜摘む", "わが衣手に 雪は降りつつ", "光孝天皇"),
-    (16, "立ち別れ いなばの山の みねに生ふる", "まつとし聞かば 今帰り来む", "中納言行平"),
-    (17, "ちはやぶる 神代も聞かず 竜田川", "からくれないに 水くくるとは", "在原業平朝臣"),
-    (18, "住の江の 岸に寄る波 よるさえや", "夢の通ひ路 人目よくらむ", "藤原敏行朝臣"),
-    (19, "難波潟 短き芦の のしの間に", "あはでこの世を 過ぐしてよとや", "伊勢"),
-    (20, "わびぬれば 今はた同じ 難波なる", "みをつくしても 逢はむとぞ思う", "元良親王"),
-    (21, "今来むと いひしばかりに 長月の", "有明けの月を 待ち出づるかな", "素性法師"),
-    (22, "吹くからに 秋の草木の しをるれば", "むべ山風を 嵐といふらむ", "文屋康秀"),
-    (23, "月見れば ちぢにものこそ 悲しけれ", "わが身一つの 秋にはあらねど", "大江千里"),
-    (24, "このたびは ぬさもとりあへず 手向山", "紅葉の錦 神のまにまに", "菅家"),
-    (25, "名にしおはば 逢坂山の さねかずら", "人にしられで くるよしもがな", "三条右大臣"),
-    (26, "小倉山 峰のもみぢ葉 心あらば", "今ひとたびの みゆき待たなむ", "貞信公"),
-    (27, "みかの原 わきて流るる いづみ川", "いつ見きとてか 恋しかるらむ", "中納言兼輔"),
-    (28, "山里は 冬ぞ寂しさ まさりける", "人目も草も かれぬと思へば", "源宗于朝臣"),
-    (29, "心あてに 折らばや折らむ 初霜の", "置きまどはせる 白菊の花", "凡河内躬恒"),
-    (30, "有明けの つれなく見えし 別れより", "あかつきばかり 憂きものはなし", "壬生忠岑"),
-    (31, "朝ぼらけ 有明けの月と みるまでに", "吉野の里に 降れる白雪", "坂上是則"),
-    (32, "山川に 風のかけたる しがらみは", "流れもあへぬ 紅葉なりけり", "春道列樹"),
-    (33, "ひさかたの 光のどけき 春の日に", "しづ心なく 花の散るらむ", "紀友則"),
-    (34, "誰をかも 知る人にせむ 高砂の", "松も昔の 友ならなくに", "藤原興風"),
-    (35, "人はいさ 心も知らず ふるさとは", "花ぞ昔の 香に匂ひける", "紀貫之"),
-    (36, "夏の夜は まだ宵ながら 明けぬるを", "雲のいづこに 月宿るらむ", "清原深養父"),
-    (37, "白露に 風の吹きしく 秋の野は", "つらぬきとめぬ 玉ぞ散りける", "文屋朝康"),
-    (38, "忘らるる 身をば思はず 誓ひてし", "人の命の 惜しくもあるかな", "右近"),
-    (39, "浅茅生の 小野の篠原 しのぶれど", "あまりてなどか 人の恋しき", "参議等"),
-    (40, "しのぶれど 色に出でにけり わが恋は", "ものや思うと 人の問ふまで", "平兼盛"),
-    (41, "恋すてふ わが名はまだき 立ちにけり", "人しれずこそ 思ひそめしか", "壬生忠見"),
-    (42, "契りきな かたみに袖を しぼりつつ", "末の松山 波越さじとは", "清原元輔"),
-    (43, "逢ひ見ての のちの心に くらぶれば", "昔はものを 思はざりけり", "権中納言敦忠"),
-    (44, "逢ふことの 絶えてしなくは なかなかに", "人をも身をも 恨みざらまし", "中納言朝忠"),
-    (45, "あわれとも いふべき人は おもほえで", "身のいたづらに なりぬべきかな", "謙徳公"),
-    (46, "由良の門を 渡る舟人 かぢを絶え", "ゆくへも知らぬ 恋の道かな", "曽禰好忠"),
-    (47, "八重むぐら しげれる宿の さびしきに", "人こそ見えね 秋は来にけり", "恵慶法師"),
-    (48, "風をいたみ 岩うつ波の おのれのみ", "くだけてものを 思ふころかな", "源重之"),
-    (49, "みかきもり 衛士のたく火の 夜は燃え", "昼は消えつつ ものをこそ思へ", "大中臣能宣朝臣"),
-    (50, "君がため 惜しからざりし 命さえ", "長くもがなと 思ひけるかな", "藤原義孝"),
-    (51, "かくとだに えやはいぶきの さしも草", "さしも知らじな 燃ゆる思いを", "藤原実方朝臣"),
-    (52, "明けぬれば 暮るるものとは 知りながら", "なほ恨めしき 朝ぼらけかな", "藤原道信朝臣"),
-    (53, "嘆きつつ ひとり寝る夜の 明くる間は", "いかに久しき ものとかは知る", "右大将道綱母"),
-    (54, "忘れじの 行く末までは かたければ", "今日を限りの 命ともがな", "儀同三司母"),
-    (55, "滝の音は 絶えて久しく なりぬれど", "名こそ流れて なほ聞こえけれ", "大納言公任"),
-    (56, "あらざらむ この世のほかの 思い出に", "今ひとたびの 逢ふこともがな", "和泉式部"),
-    (57, "めぐり逢ひて 見しやそれとも わかぬ間に", "雲がくれにし 夜半の月かな", "紫式部"),
-    (58, "有馬山 猪名の笹原 風吹けば", "いでそよ人を 忘れやはする", "大弐三位"),
-    (59, "やすらはで 寝なましものを さ夜更けて", "かたぶくまでの 月を見しかな", "赤染衛門"),
-    (60, "大江山 いく野の道の 遠ければ", "まだふみもみず 天の橋立", "小式部内侍"),
-    (61, "いにしへの 奈良の都の 八重桜", "けふ九重に にほひぬるかな", "伊勢大輔"),
-    (62, "夜をこめて 鳥のそらねは はかるとも", "よに逢坂の 関はゆるさじ", "清少納言"),
-    (63, "今はただ 思い絶えなむ とばかりを", "人づてならで 言ふよしもがな", "左京大夫道雅"),
-    (64, "朝ぼらけ 宇治の川霧 たえだえに", "あらはれわたる 瀬々の網代木", "権中納言定頼"),
-    (65, "恨みわび ほさぬ袖だに あるものを", "恋に朽ちなむ 名こそ惜しけれ", "相模"),
-    (66, "もろともに あわれと思へ 山桜", "花よりほかに 知る人もなし", "大僧正行尊"),
-    (67, "春の夜の 夢のばかりの 手枕に", "かひなく立たむ 名こそ惜しけれ", "周防内侍"),
-    (68, "心にも あらでうき世に ながらへば", "恋しかるべき 夜半の月かな", "三条院"),
-    (69, "嵐吹く 三室の山の もみぢ葉は", "竜田の川の 錦なりけり", "能因法師"),
-    (70, "さびしさに 宿を立ち出でて ながむれば", "いづこも同じ 秋の夕暮れ", "良暹法師"),
-    (71, "夕されば 門田の稲葉 おとづれて", "あしのまろやに 秋風ぞ吹く", "大納言経信"),
-    (72, "音にきく 高師の浜の あだ波は", "かけじや袖の ぬれもこそすれ", "祐子内親王家紀伊"),
-    (73, "高砂の 尾上の桜 咲きにけり", "外山の霞 立たずもあらなむ", "権中納言匡房"),
-    (74, "憂かりける 人を初瀬の 山おろしよ", "激しかれとは 祈らぬものを", "源俊頼朝臣"),
-    (75, "契りおきし させもが露を 命にて", "あわれ今年の 秋もいぬめり", "藤原基俊"),
-    (76, "わたの原 漕ぎ出でて見れば 久方の", "雲居にまがふ 沖つ白波", "法性寺入道前関白太政大臣"),
-    (77, "瀬をはやみ 岩にせかるる 滝川の", "われても末に 逢はむとぞ思う", "崇徳院"),
-    (78, "淡路島 かよふ千鳥の 鳴く声に", "いく夜寝覚めぬ 須磨の関守", "源兼昌"),
-    (79, "秋風に たなびく雲の 絶え間より", "漏れ出づる月の 影のさやけさ", "左京大夫顕輔"),
-    (80, "長からむ 心も知らず 黒髪の", "乱れて今朝は ものをこそ思へ", "待賢門院堀河"),
-    (81, "ほととぎす 鳴きつる方を ながむれば", "ただ有明けの 月ぞ残れる", "後徳大寺左大臣"),
-    (82, "思いわび さても命は あるものを", "憂きに堪へぬは 涙なりけり", "道因法師"),
-    (83, "世の中よ 道こそなけれ 思い入る", "山の奥に、も 鹿ぞ鳴くなる", "皇太后宮大夫俊成"),
-    (84, "ながらへば またこのごろや しのばれむ", "憂しと見し世ぞ 今は恋しき", "藤原清輔朝臣"),
-    (85, "夜もすがら 物思うころは 明けねであの", "ねやのひまさへ つれなかりけり", "俊恵法師"),
-    (86, "嘆けとて 月やはものを 思はする", "かこちがほなる わが涙かな", "西行法師"),
-    (87, "村雨の 露もまだひぬ 槙の葉に", "霧立ちのぼる 秋の夕暮れ", "寂蓮法師"),
-    (88, "難波江の 芦のかりねの ひとよゆゑ", "みをつくしてや 恋ひわたるべき", "皇嘉門院別当"),
-    (89, "玉の緒よ 絶えなば絶えね ながらへば", "忍ぶることの 弱りもぞする", "式子内親王"),
-    (90, "見せばやな 雄島のあまの 袖だに。も", "濡れにぞ濡れし 色は変わらず", "殷富門院大輔"),
-    (91, "きりぎりす 鳴くや霜夜の さむしろに", "衣かたしき ひとりかも寝む", "後京極摂政前太政大臣"),
-    (92, "わが袖は 潮干に見えぬ 沖の石の", "人こそしらね 乾く間もなし", "二条院讃岐"),
-    (93, "世の中は 常にもがもな 渚こぐ", "あまの小舟の 綱手かなしも", "鎌倉右大臣"),
-    (94, "み吉野の 山の秋風 さ夜更けて", "ふるさと寒く 衣うつなり", "参議雅経"),
-    (95, "おおけなく 浮世の民に おおうかな", "わが立つ杣に すみぞめの袖", "前大僧正慈円"),
-    (96, "花さそう 嵐の庭の 雪ならで", "ふりゆくものは わが身なりけり", "入道前太政大臣"),
-    (97, "来ぬ人を まつほの浦の 夕なぎに", "焼くや藻塩の 身もこがれつつ", "権中納言定家"),
-    (98, "風そよぐ ならの小川の 夕暮れは", "みそぎぞ夏の しるしなりける", "従二位家隆"),
-    (99, "人とも、 人をば思はじ 世の中を", "うしと主るは 誰がためぞかし", "後鳥羽院"),
-    (100, "ももしきや 古き のきばの しのぶにも", "なほあまりある 昔なりけり", "順徳院")
-]
+<div class="quiz-container">
+    <div id="game-style">
+        <h1>百人一首 4択クイズ</h1>
+        <div class="status">
+            <span id="question-number">第 1 問 / 全 10 問</span>
+            <span id="current-score">スコア: 0</span>
+        </div>
+        <div class="kami-no-ku" id="kami-no-ku">上の句がここに表示されます</div>
+        <div class="options-grid" id="options-container">
+            <!-- ボタンがJSで自動生成されます -->
+        </div>
+        <div class="result-panel" id="result-panel"></div>
+        <button class="next-btn" id="next-button" onclick="nextQuestion()">次の問題へ</button>
+    </div>
 
-def ask_question(question, count, total_in_set):
-    """1問を出題して正誤を判定する共通関数"""
-    q_num, kami, shimo, author = question
-    print(f"\n【第 {count} 問】(第{q_num}首 / 作者: {author})")
-    print(f"上の句：『 {kami} 』\n")
+    <div id="score-style" class="score-screen" style="display: none;">
+        <div class="score-title">クイズ終了！</div>
+        <div class="score-num" id="final-score">0 / 10</div>
+        <button class="next-btn" style="display: block;" onclick="restartGame()">もう一度遊ぶ</button>
+    </div>
+</div>
+
+<script>
+// 百人一首 全100首のデータ
+const hyakuninIsshu = [
+    { id: 1, kami: "秋の田の かりほの庵の 苫をあらみ", shimo: "我が衣手は 露にぬれつつ", author: "天智天皇" },
+    { id: 2, kami: "春すぎて 夏来にけらし 白妙の", shimo: "衣ほすてふ 天の香具山", author: "持統天皇" },
+    { id: 3, kami: "足引きの 山鳥の尾の しだり尾の", shimo: "ながながし夜を ひとりかも寝む", author: "柿本人言" },
+    { id: 4, kami: "田子の浦に うち出でて見れば 白妙の", shimo: "富士の高嶺に 雪は降りつつ", author: "山部赤人" },
+    { id: 5, kami: "奥山に 紅葉踏み分け 鳴く鹿の", shimo: "声きく時ぞ 秋は悲しき", author: "猿丸大夫" },
+    { id: 6, kami: "かささぎの 渡せる橋に おく霜の", shimo: "白きを見れば 夜ぞ更けにける", author: "中納言家持" },
+    { id: 7, kami: "天の原 ふりさけ見れば 春日なる", shimo: "三笠の山に 出でし月かも", author: "安倍仲麿" },
+    { id: 8, kami: "我が庵は 都のたつみ しかぞ住む", shimo: "世をうぢ山と 人は言うなり", author: "喜撰法師" },
+    { id: 9, kami: "花の色は 移りにけりな いたづらに", shimo: "我が身世にふる ながめせしまに", author: "小野小町" },
+    { id: 10, kami: "これやこの 行くも帰るも 別れては", shimo: "知るも知らぬも 逢坂の関", author: "蝉丸" },
+    { id: 11, kami: "わたの原 八十島かけて 漕ぎ出ぬと", shimo: "人には告げよ 海人の釣舟", author: "参議篁" },
+    { id: 12, kami: "天つ風 雲の通ひ路 吹き閉じよ", shimo: "乙女の姿 しばしとどめむ", author: "僧正遍昭" },
+    { id: 13, kami: "筑波嶺の みねより落つる みなの川", shimo: "恋ぞつもりて 淵となりぬる", author: "陽成院" },
+    { id: 14, kami: "陸奥の しのぶもぢずり 誰ゆゑに", shimo: "乱れそめにし 我ならなくに", author: "河原左大臣" },
+    { id: 15, kami: "君がため 春の野に出でて 若菜摘む", shimo: "我が衣手に 雪は降りつつ", author: "光孝天皇" },
+    { id: 16, kami: "立ち別れ いなばの山の 峰に生ふる", shimo: "まつとし聞かば 今帰り来む", author: "中納言行平" },
+    { id: 17, kami: "ちはやぶる 神代も聞かず 竜田川", shimo: "から紅に 水くくるとは", author: "在原業平朝臣" },
+    { id: 18, kami: "住の江の 岸に寄る波 よるさへや", shimo: "夢の通ひ路 人目よくらむ", author: "藤原敏行朝臣" },
+    { id: 19, kami: "難波潟 短き芦の のしの間も", shimo: "逢はでこの世を 過ぐしてよとや", author: "伊勢" },
+    { id: 20, kami: "侘びぬれば 今はた同じ 難波なる", shimo: "みをつくしても 逢はむとぞ思う", author: "元良親王" },
+    { id: 21, kami: "今来むと 言ひしばかりに 長月の", shimo: "有明けの月を 待ち出でつるかな", author: "素性法師" },
+    { id: 22, kami: "吹くからに 秋の草木の しをるれば", shimo: "むべ山風を 嵐といふらむ", author: "文屋康秀" },
+    { id: 23, kami: "月見れば ちぢに物こそ 悲しけれ", shimo: "我が身一つの 秋にはあらねど", author: "大江千里" },
+    { id: 24, kami: "このたびは ぬさもとりあへず 手向山", shimo: "紅葉の錦 神のまにまに", author: "菅家" },
+    { id: 25, kami: "名にしおはば 逢坂山の さねかずら", shimo: "人に知られで くるよしもがな", author: "三条右大臣" },
+    { id: 26, kami: "小倉山 峰の紅葉葉 心あらば", shimo: "今ひとたびの みゆき待たなむ", author: "貞信公" },
+    { id: 27, kami: "みかの原 わきて流るる いづみ川", shimo: "いつ見きとてか 恋しかるらむ", author: "中納言兼輔" },
+    { id: 28, kami: "山里は 冬ぞ寂しさ まさりける", shimo: "人目も草も かれぬと思へば", author: "源宗于朝臣" },
+    { id: 29, kami: "心あてに 折らばや折らむ 初霜の", shimo: "置きまどはせる 白菊の花", author: "凡河内躬恒" },
+    { id: 30, kami: "有明けの つれなく見えし 別れより", shimo: "暁ばかり 憂きものはなし", author: "壬生忠岑" },
+    { id: 31, kami: "朝ぼらけ 有明けの月と みるまでに", shimo: "吉野の里に ふれる白雪", author: "坂上 St" },
+    { id: 32, kami: "山川に 風のかけたる しがらみは", shimo: "流れもあへぬ 紅葉なりけり", author: "春道列樹" },
+    { id: 33, kami: "ひさかたの 光のどけき 春の日に", shimo: "静心なく 花の散るらむ", author: "紀友則" },
+    { id: 34, kami: "誰をかも 知る人にせむ 高砂の", shimo: "尾上の松も 年経にければ", author: "藤原興風" },
+    { id: 35, kami: "人はいさ 心も知らず ふるさとは", shimo: "花ぞ昔の 香に匂ひける", author: "紀貫之" },
+    { id: 36, kami: "夏の夜は まだ宵ながら 明けぬるを", shimo: "雲のいづこに 月宿るらむ", author: "清原深養父" },
+    { id: 37, kami: "白露に 風の吹きしく 秋の野は", shimo: "つらぬきとめぬ 玉ぞ散りける", author: "文屋朝康" },
+    { id: 38, kami: "忘らるる 身をば思はず 誓ひてし", shimo: "人の命の 惜しくもあるかな", author: "右近" },
+    { id: 39, kami: "浅茅生の 小野の篠原 忍ぶれど", shimo: "あまりてなどか 人の恋しき", author: "参議等" },
+    { id: 40, kami: "忍ぶれど 色に出でにけり 我が恋は", shimo: "物や思うと 人の問ふまで", author: "平兼盛" },
+    { id: 41, kami: "恋すてふ 我が名はまだき 立ちにけり", shimo: "人知れずこそ 思ひそめしか", author: "壬生忠見" },
+    { id: 42, kami: "契りきな かたみに袖を しぼりつつ", shimo: "末の松山 波越さじとは", author: "清原元輔" },
+    { id: 43, kami: "逢ひ見ての のちの心に くらぶれば", shimo: "昔は物を 思はざりけり", author: "権中納言敦忠" },
+    { id: 44, kami: "逢ふことの 絶えてしなくは なかなかにお", shimo: "人をも身をも 恨みざらまし", author: "中納言朝忠" },
+    { id: 45, kami: "哀れとも いふべき人は 思ほえで", shimo: "身のいたづらに なりぬべきかな", author: "謙徳公" },
+    { id: 46, kami: "由良の門を 渡る舟人 かぢを絶え", shimo: "行くへも知らぬ 恋の道かな", author: "曽禰好忠" },
+    { id: 47, kami: "八重むぐら しげれる宿の 寂しきに", shimo: "人こそ見えね 秋は来にけり", author: "恵慶法師" },
+    { id: 48, kami: "風をいたみ 岩うつ波の 己のみ", shimo: "砕けて物を 思うころかな", author: "源重之" },
+    { id: 49, kami: "御垣守 衛士のたく火の 夜は燃え", shimo: "昼は消えつつ 物をこそ思へ", author: "大中臣能宣" },
+    { id: 50, kami: "君がため 惜しからざりし 命さえ", shimo: "長くもがなと 思ひけるかな", author: "藤原義孝" },
+    { id: 51, kami: "かくとだに えやは伊吹の さしも草", shimo: "さしも知らじな 燃ゆる思いを", author: "藤原実方朝臣" },
+    { id: 52, kami: "明けぬれば 暮るるものとは 知りながら", shimo: "なほうらめしき 朝ぼらけかな", author: "藤原道信朝臣" },
+    { id: 53, kami: "嘆きつつ ひとり寝る夜の 明くる間は", shimo: "いかに久しき ものとかは知る", author: "右大将道綱母" },
+    { id: 54, kami: "忘れじの 行く末までは 難ければ", shimo: "今日を限りの 命ともがな", author: "高内侍" },
+    { id: 55, kami: "滝の音は 絶えて久しく なりぬれど", shimo: "名こそ流れて なほ聞こえけれ", author: "大納言公任" },
+    { id: 56, kami: "あらざらむ この世のほかの 思い出に", shimo: "今ひとたびの 逢ふこともがな", author: "和泉式部" },
+    { id: 57, kami: "めぐり逢ひて 見しやそれとも わかぬ間に", shimo: "雲がくれにし 夜半の月かな", author: "紫式部" },
+    { id: 58, kami: "有馬山 猪名の笹原 風吹けば", shimo: "いでそよ人を 忘れやはする", author: "大弐三位" },
+    { id: 59, kami: "やすらはで 寝なましものを 小夜更けて", shimo: "かたぶくまでの 月を見しかな", author: "赤染衛門" },
+    { id: 60, kami: "大江山 生野の道の 遠ければ", shimo: "まだふみもみず 天の橋立", author: "小式部内侍" },
+    { id: 61, kami: "いにしへの 奈良の都の 八重桜", shimo: "けふ九重に 匂ひぬるかな", author: "伊勢大輔" },
+    { id: 62, kami: "夜をこめて 鳥のそら音は 秤るとも", shimo: "よに逢坂の 関は許さじ", author: "清少納言" },
+    { id: 63, kami: "今はただ 思ひ絶えなむ とばかりを", shimo: "人づてならで 言ふよしもがな", author: "左京大夫道雅" },
+    { id: 64, kami: "朝ぼらけ 宇治の川霧 たえだえに", shimo: "あらはれわたる 瀬々の網代木", author: "権中納言定頼" },
+    { id: 65, kami: "恨みわび ほさぬ袖だに あるものを", shimo: "恋に朽ちなむ 名こそ惜しけれ", author: "相模" },
+    { id: 66, kami: "もろともに 哀れと思へ 山桜", shimo: "花よりほかに 知る人もなし", author: "大僧正行尊" },
+    { id: 67, kami: "春の夜の 夢の浮橋 とだえして", shimo: "峰に別るる 横雲の空", author: "周防内侍" },
+    { id: 68, kami: "心から 浮き世に腫るる 我が身かな", shimo: "誰を恨みむ 哀れをも知る", author: "三条院" },
+    { id: 69, kami: "嵐吹く 三室の山の もみぢ葉は", shimo: "竜田の川の 錦なりけり", author: "能因法師" },
+    { id: 70, kami: "寂しさに 宿を立ち出でて ながむれば", shimo: "いづこも同じ 秋の夕暮れ", author: "良暹法師" },
+    { id: 71, kami: "夕されば 門田の稲葉 おとづれて", shimo: "芦のまろやに 秋風ぞ吹く", author: "大納言経信" },
+    { id: 72, kami: "音に聞く 高師の浜の あだ波は", shimo: "かけじや袖の 濡れもこそすれ", author: "祐子内親王家紀伊" },
+    { id: 73, kami: "高砂の 尾上の桜 咲きにけり", shimo: "外山の霞 立たずもがな", author: "前中納言匡房" },
+    { id: 74, kami: "憂かりける 人を初瀬の 山おろしよ", shimo: "激しかれとは 祈らぬものを", author: "源俊頼朝臣" },
+    { id: 75, kami: "契りおきし させもが露を 命にて", shimo: "あはれ今年の 秋もいぬめり", author: "藤原基俊" },
+    { id: 76, kami: "わたの原 漕ぎ出でて見れば ひさかたの", shimo: "雲居にまがふ 沖つ白波", author: "法性寺入道前関白太政大臣" },
+    { id: 77, kami: "瀬を早み 岩にせかるる 滝川の", shimo: "割れても末に 逢はむとぞ思う", author: "崇徳院" },
+    { id: 78, kami: "淡路島 通ふ千鳥の 鳴く声に", shimo: "いく夜寝覚めぬ 須磨の関守", author: "源兼昌" },
+    { id: 79, kami: "秋風に たなびく雲の 絶え間より", shimo: "漏れ出づる月の 影のさやけさ", author: "左京大夫顕輔" },
+    { id: 80, kami: "長からむ 心も知らず 黒髪の", shimo: "乱れて今朝は 物をこそ思へ", author: "待賢門院堀河" },
+    { id: 81, kami: "ほととぎす 鳴きつる方を ながむれば", shimo: "ただ有明けの 月ぞ残れる", author: "後徳大寺左大臣" },
+    { id: 82, kami: "思ひわび さても命は あるものを", shimo: "憂きに堪へぬは 涙なりけり", author: "道因法師" },
+    { id: 83, kami: "世の中よ 道こそなけれ 思い入る", shimo: "山の奥に、も なほ憂き世あり", author: "皇太后宮大夫俊成" },
+    { id: 84, kami: "ながらへば またこのごろや 偲ばれむ", shimo: "憂しと見し世ぞ 今は恋しき", author: "藤原清輔朝臣" },
+    { id: 85, kami: "夜もすがら 物思うころは 明けねばに", shimo: "ねやのひまさえ つれなかりけり", author: "俊恵法師" },
+    { id: 86, kami: "嘆けとて 月やは物を 思はする", shimo: "かこちがほなる 我が涙かな", author: "西行法師" },
+    { id: 87, kami: "村雨の 露もまだひぬ 槇の葉に", shimo: "霧立ちのぼる 秋の夕暮れ", author: "寂蓮法師" },
+    { id: 88, kami: "難波江の 芦のかりねの ひとよゆゑ", shimo: "みをつくしてや 恋ひわたるべき", author: "皇嘉門院別当" },
+    { id: 89, kami: "玉の緒よ 絶えなば絶えね ながらへば", shimo: "忍ぶることの 弱りもぞする", author: "式子内親王" },
+    { id: 90, kami: "見せばやな 雄島の海人の 袖だに。も", shimo: "濡れにぞ濡れし 色は変わらず", author: "殷富門院大輔" },
+    { id: 91, kami: "きりぎりす 鳴くや霜夜の さむしろに", shimo: "衣かたしき ひとりかも寝む", author: "後京極摂政前太政大臣" },
+    { id: 92, kami: "我が袖は 潮干に見えぬ 沖の石の", shimo: "人こそ知らね 乾く間もなし", author: "二条院讃岐" },
+    { id: 93, kami: "世の中は 常にもがもな 渚こぐ", shimo: "あまの小舟の 綱手かなしも", author: "鎌倉右大臣" },
+    { id: 94, kami: "み吉野の 山の秋風 小夜更けて", shimo: "ふるさと寒く 衣うつなり", author: "参議雅経" },
+    { id: 95, kami: "おおけなく 浮き世の民に おおうかな", shimo: "我が立つ杣に 墨染の袖", author: "前大僧正慈円" },
+    { id: 96, kami: "花さそふ 嵐の庭の 雪ならで", shimo: "ふりゆくものは 我が身なりけり", author: "入道前太政大臣" },
+    { id: 97, kami: "来ぬ人を まつほの浦の 夕なぎに", shimo: "焼くや藻塩の 身も焦がれつつ", author: "権中納言定家" },
+    { id: 98, kami: "風そよぐ ならの小川の 夕暮れは", shimo: "みそぎぞ夏の しるしなりける", author: "従二位家隆" },
+    { id: 99, kami: "人とも人を 恨みむともなし 世を知らぬ", shimo: "身のうきためにおれると思へば", author: "後鳥羽院" },
+    { id: 100, kami: "ももしきや 古き軒端の しのぶにも", shimo: "なほあまりある 昔なりけり", author: "順徳院" }
+];
+
+let currentQuizSet = [];
+let currentIndex = 0;
+let score = 0;
+const totalQuestions = 10; // 1回あたりの出題数
+
+function initGame() {
+    // 100首からランダムに10首を抽出
+    const shuffled = [...hyakuninIsshu].sort(() => 0.5 - Math.random());
+    currentQuizSet = shuffled.slice(0, totalQuestions);
+    currentIndex = 0;
+    score = 0;
     
-    wrong_pool = [item[2] for item in HYAKUNIN_ISSHU if item[0] != q_num]
-    wrong_answers = random.sample(wrong_pool, 4)
+    document.getElementById('game-style').style.display = 'block';
+    document.getElementById('score-style').style.display = 'none';
+    showQuestion();
+}
+
+function showQuestion() {
+    // 画面リセット
+    document.getElementById('next-button').style.display = 'none';
+    document.getElementById('result-panel').style.display = 'none';
+    document.getElementById('result-panel').className = 'result-panel';
     
-    choices = wrong_answers + [shimo]
-    random.shuffle(choices)
+    // 進捗表示
+    document.getElementById('question-number').innerText = `第 ${currentIndex + 1} 問 / 全 ${totalQuestions} 問`;
+    document.getElementById('current-score').innerText = `スコア: ${score}`;
     
-    correct_index = choices.index(shimo) + 1
+    const currentSong = currentQuizSet[currentIndex];
+    document.getElementById('kami-no-ku').innerText = currentSong.kami;
     
-    for i, choice in enumerate(choices, 1):
-        print(f"  {i}. {choice}")
+    // 4択を作る（正解1つ + 誤答3つ）
+    const options = [currentSong.shimo];
+    const otherSongs = hyakuninIsshu.filter(song => song.id !== currentSong.id);
+    const shuffledOthers = otherSongs.sort(() => 0.5 - Math.random());
+    
+    for(let i=0; i<3; i++) {
+        options.push(shuffledOthers[i].shimo);
+    }
+    
+    // 選択肢の順序をランダムに
+    options.sort(() => 0.5 - Math.random());
+    
+    // ボタンの生成
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    
+    options.forEach(option => {
+        const button = document.createElement('button');
+        button.className = 'option-btn';
+        button.innerText = option;
+        button.onclick = () => selectOption(button, option, currentSong.shimo, currentSong.author);
+        container.appendChild(button);
+    });
+}
+
+function selectOption(selectedButton, selectedValue, correctValue, author) {
+    // すべてのボタンを無効化
+    const buttons = document.querySelectorAll('.option-btn');
+    buttons.forEach(btn => btn.disabled = true);
+    
+    const resultPanel = document.getElementById('result-panel');
+    resultPanel.style.display = 'block';
+    
+    if (selectedValue === correctValue) {
+        selectedButton.classList.add('correct');
+        resultPanel.classList.add('correct');
+        resultPanel.innerText = `◯ 正解！【作者】${author}`;
+        score++;
+        document.getElementById('current-score').innerText = `スコア: ${score}`;
+    } else {
+        selectedButton.classList.add('wrong');
+        resultPanel.classList.add('wrong');
+        resultPanel.innerText = `× 不正解... 正解は「${correctValue}」でした。【作者】${author}`;
         
-    print("-" * 40)
+        // 正解のボタンをハイライト
+        buttons.forEach(btn => {
+            if (btn.innerText === correctValue) {
+                btn.classList.add('correct');
+            }
+        });
+    }
     
-    while True:
-        user_input = input("あなたの回答（1〜5、または qで終了）: ").strip()
-        
-        if user_input.lower() == 'q':
-            return 'quit', 0
-            
-        if user_input in ['1', '2', '3', '4', '5']:
-            user_choice = int(user_input)
-            break
-        else:
-            print("1〜5の数字、または 'q' を入力してください。")
-    
-    if user_choice == correct_index:
-        print("\n◎ 正解！")
-        return 'correct', 1
-    else:
-        print(f"\n× 残念！ 不正解。")
-        print(f"正解は 【{correct_index}】 の 『{shimo}』 でした。")
-        return 'incorrect', 0
+    document.getElementById('next-button').style.display = 'block';
+}
 
+function nextQuestion() {
+    currentIndex++;
+    if (currentIndex < totalQuestions) {
+        showQuestion();
+    } else {
+        showScore();
+    }
+}
 
-def play_random_mode():
-    """ランダム出題モード (全10問)"""
-    print("\n--- 【ランダムモード】を開始します（全10問） ---")
-    quiz_pool = random.sample(HYAKUNIN_ISSHU, 10)
-    score = 0
-    
-    for idx, question in enumerate(quiz_pool, 1):
-        status, point = ask_question(question, idx, 10)
-        if status == 'quit':
-            print(f"\nクイズを中断しました。ここまでのスコア: {idx-1}問中 {score}問 正解")
-            return
-        score += point
-        print("=" * 40)
-        
-    print("\n【結果発表】")
-    print(f"10問中 {score}問 正解しました！")
+function showScore() {
+    document.getElementById('game-style').style.display = 'none';
+    document.getElementById('score-style').style.display = 'block';
+    document.getElementById('final-score').innerText = `${score} / ${totalQuestions}`;
+}
 
+function restartGame() {
+    initGame();
+}
 
-def play_order_mode():
-    """順番に出題モード (1番から100番まで、10問ずつ区切り)"""
-    print("\n--- 【順番モード】を開始します（第1首〜第100首） ---")
-    
-    current_index = 0
-    total_score = 0
-    total_asked = 0
-    
-    while current_index < len(HYAKUNIN_ISSHU):
-        print(f"\n=== 第 {current_index + 1} 首 〜 第 {min(current_index + 10, 100)} 首 のブロック ===")
-        block_score = 0
-        block_asked = 0
-        
-        for i in range(10):
-            if current_index >= len(HYAKUNIN_ISSHU):
-                break
-                
-            question = HYAKUNIN_ISSHU[current_index]
-            status, point = ask_question(question, block_asked + 1, 10)
-            
-            if status == 'quit':
-                print(f"\nクイズを終了します。トータル成績: {total_asked}問中 {total_score}問 正解")
-                return
-                
-            block_score += point
-            block_asked += 1
-            total_score += point
-            total_asked += 1
-            current_index += 1
-            print("=" * 40)
-            
-        print(f"\nこのブロックの成績: 10問中 {block_score}問 正解")
-        
-        if current_index >= len(HYAKUNIN_ISSHU):
-            print("\n🎉 おめでとうございます！全100首を走破しました！")
-            print(f"最終トータル成績: 100問中 {total_score}問 正解")
-            break
-            
-        next_action = input("\n次の10問に進みますか？ (y: 進む / q: 終了): ").strip().lower()
-        if next_action == 'q':
-            print(f"\nクイズを終了します。トータル成績: {total_asked}問中 {total_score}問 正解")
-            break
-
-
-def main():
-    while True:
-        print("==========================================")
-        print("       百人一首 上の句・下の句クイズ        ")
-        print("==========================================")
-        print("1 : ランダムに10問解く")
-        print("2 : 第1首から順番に解く（10問ずつ区切り）")
-        print("q : アプリを終了する")
-        print("==========================================")
-        
-        mode = input("モードを選択してください (1 / 2 / q): ").strip()
-        
-        if mode == '1':
-            play_random_mode()
-        elif mode == '2':
-            play_order_mode()
-        elif mode.lower() == 'q':
-            print("\nありがとうございました！また遊んでね。")
-            break
-        else:
-            print("\n無効な入力です。1, 2, または q を入力してください。\n")
-        
-        input("\n[Enter] キーを押してメニューに戻ります...")
-        print("\n" * 2)
-
-if __name__ == "__main__":
-    main()
+// 初回起動
+window.onload = initGame;
+</script>
+</body>
+</html>
